@@ -6,6 +6,7 @@
 //#include <WebServer.h>
 #include <ArduinoJson.h>
 #include <ESPAsyncWebServer.h>
+#include <WebSocketsServer.h>
 //------- VARIABLES-----------
 HardwareSerial MySerial(2);
 Adafruit_Fingerprint finger = Adafruit_Fingerprint(&MySerial);
@@ -16,7 +17,7 @@ uint8_t lastId;
 uint8_t numberfingers;
 String ParameterID;
 AsyncWebServer server(80);
-
+WebSocketsServer websockets(81);
 // Current time
 unsigned long currentTime = millis();
 // Previous time
@@ -81,8 +82,21 @@ void setup()
     request->send(200, "application/json",json);
     mode = 1;
   });
+
+  server.on("/findSensor", HTTP_GET, [](AsyncWebServerRequest *request){
+ 
+   
+    DynamicJsonDocument doc(2048);
+    doc["msg"] = "Lector Encontrado";
+    String json;
+    serializeJson(doc, json);
+    request->send(200, "application/json",json);
+
+    
+  });
   
   server.begin();
+  websockets.begin();
  
   finger.begin(57600);
   
@@ -106,6 +120,8 @@ void setup()
 //-----VOID LOOP---------
 void loop()      // run over and over again
 {
+  websockets.loop();
+  websockets.broadcastTXT("Probando");
   if(mode==0){
     getFingerprintID();
     delay(50); 
@@ -246,6 +262,7 @@ uint8_t getFingerprintEnroll() {
   switch (p) {
     case FINGERPRINT_OK:
       Serial.println("Image converted");
+      websockets.broadcastTXT("Image converted");
       break;
     case FINGERPRINT_IMAGEMESS:
       Serial.println("Image too messy");
@@ -261,6 +278,7 @@ uint8_t getFingerprintEnroll() {
   Serial.print("ID "); Serial.println(id);
   p = -1;
   Serial.println("Place same finger again");
+  websockets.broadcastTXT("Place same finger again");
   while (p != FINGERPRINT_OK) {
     p = finger.getImage();
     switch (p) {
@@ -277,6 +295,7 @@ uint8_t getFingerprintEnroll() {
   switch (p) {
     case FINGERPRINT_OK:
       Serial.println("Image converted");
+      websockets.broadcastTXT("Image converted");
       break;
     case FINGERPRINT_IMAGEMESS:
       Serial.println("Image too messy");
@@ -289,13 +308,14 @@ uint8_t getFingerprintEnroll() {
   p = finger.createModel();
   if (p == FINGERPRINT_OK) {
     Serial.println("Prints matched!");
+    websockets.broadcastTXT("Prints matched!");
   } 
   
   Serial.print("ID "); Serial.println(id);
   p = finger.storeModel(id);
   if (p == FINGERPRINT_OK) {
     Serial.println("Stored!");
-
+    websockets.broadcastTXT("Stored!");
     if(WiFi.status()== WL_CONNECTED){ 
     HTTPClient http;
     DynamicJsonDocument doc(2048);
