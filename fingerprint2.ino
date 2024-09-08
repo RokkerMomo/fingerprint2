@@ -39,6 +39,8 @@ const long timeoutTime = 2000;
 //---------SETUP -------------
 void setup()
 {
+  pinMode(26,OUTPUT);
+  pinMode(27,OUTPUT);
   MySerial.begin(115200, SERIAL_8N1, 4, 5);
   Serial.begin(115200);
   const char* ssid     = "The Promised LAN 2.4G";
@@ -121,7 +123,6 @@ void setup()
 void loop()      // run over and over again
 {
   websockets.loop();
-  websockets.broadcastTXT("Probando");
   if(mode==0){
     getFingerprintID();
     delay(50); 
@@ -166,12 +167,16 @@ uint8_t getFingerprintID() {
     return p;
   } else if (p == FINGERPRINT_NOTFOUND) {
     Serial.println("Did not find a match");
+    digitalWrite(26,HIGH);
+    delay(1000);
+    digitalWrite(26,LOW);
     return p;
   }
 
   // found a match!
   Serial.print("Found ID #"); Serial.print(finger.fingerID);
   Serial.print(" with confidence of "); Serial.println(finger.confidence);
+  digitalWrite(27,HIGH);
 
   if(WiFi.status()== WL_CONNECTED){ 
     HTTPClient http;
@@ -212,9 +217,7 @@ uint8_t getFingerprintID() {
      Serial.println("Error en la conexión WIFI");
 
   }
-
-  
-
+  digitalWrite(27,LOW);
   return finger.fingerID;
 }
 
